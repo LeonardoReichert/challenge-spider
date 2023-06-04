@@ -1,0 +1,32 @@
+
+
+// configurar target_site.txt para decir a que web
+// poner contenido en target_site.txt como https://www. ... .com
+
+
+[user-agent]
+Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KhtmlCode, like Gecko) Chrome/97.0.4692.99 Mobile Safari/537.36
+[/user-agent]
+
+
+[path-saves]
+saves/
+[/path-saves]
+
+//la cantidad de threads que va a usarse
+[max-threads]
+3
+[/max-threads]
+
+
+//cantidad de intentos por pagina fallida:
+[max-retrys-pages]
+5
+[/max-retrys-pages]
+
+
+//cantidad de segundos a esperar por pagina antes de reintentar:
+[wait-seconds-retry]
+5
+[/wait-seconds-retry]
+
