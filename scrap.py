@@ -39,15 +39,40 @@ class Scraper:
         thread.start();
         self.programThreads.append(thread);
     
+
     def getInfoCategories(self):
+        """ Devuelve las url-slugs categorias o subcategorias
+        o -1 si no tiene exito """
+
+        print("Recuperando las slugs-categorias... ", end="");
+
+        #50 es la profundidad entre categorias y subcategorias
         slug = "/api/catalog_system/pub/category/tree/50";
-        result = self.getPage(domain + slug);
+        result = Browser().getPage(domain + slug);
         if result != -1:
-            result = json.loads(result);
+            categories = json.loads(result);
         else:
             print("Hubieron problemas al leer la api de categorias.");
+            return -1;
+
+        slugs_categories = [];
+
+        for dictCategory in categories:
+
+            #quitamos el nombre de host y conservamos el slug: https://dominio.com/slug_category/
+            slug = dictCategory["url"].split("//", 1)[1].split("/", 1)[1];
+            slugs_categories.append(slug);
+
+            #las sub-categorias de esta categoria las agregamos a este for proceso:
+            categories.extend(dictCategory["children"]);
+
+        print("hay %d slugs categorias", len(slugs_categories))
+            #"id": 1,
+            #"name": "Tecnología",
+        
 
     
+
     def getProductsFromSucursal(self, sc):
 
         browser = Browser();
@@ -104,9 +129,10 @@ class Scraper:
 
 b = Scraper();
 
-results = b.getProductsFromAllSucursals();
+b.getInfoCategories();
 
-print(f"teniendo {len(results)}");
+#results = b.getProductsFromAllSucursals();
+#print(f"teniendo {len(results)}");
 
 input("fin")
 

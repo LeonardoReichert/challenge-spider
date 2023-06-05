@@ -11,7 +11,7 @@ dataConfig = fp.read();
 fp.close();
 
 
-domain = open("target_site.txt", "r").read().strip()
+domain = open("target_site.txt", "r").read().strip();
 
 #domain = re.findall("\[domain\](.+)\[/domain\]", dataConfig, flags=re.DOTALL)[0].replace("\n", "");
 
