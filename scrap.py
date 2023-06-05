@@ -23,15 +23,17 @@ class Scraper:
     
     def waitThreads(self, wait_all=False):
         """ Espera mientras la cantidad de threads este al limite """
-        #print("esperando threads")
+        if wait_all:
+            print("esperando threads")
         while (len(self.programThreads) >= maxThreads) or (wait_all and self.programThreads):
             for thread in self.programThreads:
                 if not thread.is_alive():
                     self.programThreads.remove(thread);
             #        print("removido un thread")
             time.sleep(0.01); #10ms no estresa cpu
-            #print(self.programThreads)
-        #print("listo")
+        if wait_all:
+            print("listo threads")
+
 
     def startNewThread(self, func, *args):
         self.waitThreads();
@@ -40,9 +42,10 @@ class Scraper:
         self.programThreads.append(thread);
     
 
-    def getInfoCategories(self):
-        """ Devuelve las url-slugs categorias o subcategorias
-        o -1 si no tiene exito """
+    def recvApiCategories(self):
+        """
+        recupera las url-api de categorias o subcategorias para consultar posteriormente productos
+        devuelve True si tiene exito, False si tuvo error"""
 
         print("Recuperando las slugs-categorias... ", end="");
 
@@ -53,62 +56,87 @@ class Scraper:
             categories = json.loads(result);
         else:
             print("Hubieron problemas al leer la api de categorias.");
-            return -1;
-
-        slugs_categories = [];
+            return False;
+        
+        self.apisCategories = [];
 
         for dictCategory in categories:
 
             #quitamos el nombre de host y conservamos el slug: https://dominio.com/slug_category/
             slug = dictCategory["url"].split("//", 1)[1].split("/", 1)[1];
-            slugs_categories.append(slug);
+            
+            urlApi = domain+"/api/catalog_system/pub/products/search/%s/"%slug;
+            self.apisCategories.append(urlApi);
 
             #las sub-categorias de esta categoria las agregamos a este for proceso:
             categories.extend(dictCategory["children"]);
 
-        print("hay %d slugs categorias", len(slugs_categories))
-            #"id": 1,
-            #"name": "Tecnología",
+        print("hay %d slugs categorias" % len(self.apisCategories))
         
-
+        return True;  #succes
     
 
     def getProductsFromSucursal(self, sc):
+        """ devuelve la lista de sucursales consultada, pero en proceso aun """
+
+        #a este punto las api-categorias ya fueron extraidas
 
         browser = Browser();
 
         products = [];
-        for _from in range(0, 2550, 50):
-            to = _from + 49;
-#            print(_from, to)
 
+        count = 0;
+        
+        for urlApi in self.apisCategories:
             def procGetProducts():
-                result = browser.getPage(
-                  domain+f"/api/catalog_system/pub/products/search/?_from={_from}&_to={to}&sc={sc}");
-                if result == -1:
-                    print("Error no pagina sucursal", sc);
-                    #time.sleep(120);
-                    return [];
-            
-                products.extend(re.findall("\"productId\":\"([0-9]+)\"", result))
-                #print("resultado: %d " % result.count("productId"));
-            
+                
+                for _from in range(0, 2550, 50):
+                    to = _from + 49;
+
+                    url = urlApi + f"?_from={_from}&_to={to}&sc={sc}";
+                    result = browser.getPage( url );
+                            
+                    if result == -1:
+                        return;
+                
+                    result = re.findall("\"productId\":\"([0-9]+)\"", result);
+                    if not result:
+                        break;
+                            
+                    products.extend(result) #una simple prueba aun
+                        #print("resultado: %d " % result.count("productId"));
+                    
             self.startNewThread(procGetProducts);
+            count += 1;
+            #print(f"Encontrados {len(result)} resultados en {url}..");
+            progress = count / len(self.apisCategories) * 100;
+            if not progress % 10:
+                print("sc: %d progress: %.02f %%" % (sc, progress) );
+        
 
         return products;
             
     def getProductsFromAllSucursals(self):
         """ Revisa todas las sucursales y devuelve todos sus productos """
 
-        results = []
-        for surcursal in range(1, 17):
+        if not self.recvApiCategories():
+            print("Hubo un error...");
+            return -1;
+        
+        results = [];
+        for surcursal in [1]:
 
-            results.append( b.getProductsFromSucursal(surcursal) );
+            pendingResult = self.getProductsFromSucursal( surcursal );
+            results.append( pendingResult );
     
             #products.extend(results);
             #products = list(set(products));
             print(f"probando sucursal {surcursal} con {len(self.programThreads)} threads");
             #self.startNewThread(procProducts);
+            self.waitThreads(True);
+
+            print("productos:", len(pendingResult))
+            #break;
 
             #time.sleep(5)
         
@@ -127,12 +155,10 @@ class Scraper:
         
         return products;
 
+
 b = Scraper();
-
-b.getInfoCategories();
-
-#results = b.getProductsFromAllSucursals();
-#print(f"teniendo {len(results)}");
+results = b.getProductsFromAllSucursals();
+print(f"teniendo {len(results)}");
 
 input("fin")
 

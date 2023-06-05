@@ -15,7 +15,7 @@ saves/
 
 //la cantidad de threads que va a usarse
 [max-threads]
-3
+50
 [/max-threads]
 
 
