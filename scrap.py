@@ -42,7 +42,7 @@ class Scraper:
         self.programThreads.append(thread);
     
 
-    def recvApiCategories(self):
+    def _recvApiCategories(self):
         """
         recupera las url-api de categorias o subcategorias para consultar posteriormente productos
         devuelve True si tiene exito, False si tuvo error"""
@@ -95,14 +95,13 @@ class Scraper:
 
                     url = urlApi + f"?_from={_from}&_to={to}&sc={sc}";
                     result = browser.getPage( url );
-                            
                     if result == -1:
                         return;
-                
+
                     result = re.findall("\"productId\":\"([0-9]+)\"", result);
                     if not result:
                         break;
-                            
+                    
                     products.extend(result) #una simple prueba aun
                         #print("resultado: %d " % result.count("productId"));
                     
@@ -119,12 +118,12 @@ class Scraper:
     def getProductsFromAllSucursals(self):
         """ Revisa todas las sucursales y devuelve todos sus productos """
 
-        if not self.recvApiCategories():
+        if not self._recvApiCategories():
             print("Hubo un error...");
             return -1;
         
         results = [];
-        for surcursal in [1]:
+        for surcursal in range(1, 17): #<- los sc se calcularan
 
             pendingResult = self.getProductsFromSucursal( surcursal );
             results.append( pendingResult );
@@ -135,14 +134,14 @@ class Scraper:
             #self.startNewThread(procProducts);
             self.waitThreads(True);
 
-            print("productos:", len(pendingResult))
+            print("productos:", len(pendingResult));
             #break;
 
             #time.sleep(5)
         
-        print("Finalizando todos los threads... ", end="")
+        print("Finalizando todos los threads... ", end="");
         self.waitThreads(True);
-        print("listo.")
+        print("listo.");
 
         t1 = time.time();
         products = []
@@ -155,10 +154,58 @@ class Scraper:
         
         return products;
 
+    def getAvailableSucursalIds(self):
+        """ Obtiene el ID de sucursales disponibles """
+
+        url = domain + "/institucional/sucursales";
+
+        print("Obteniendo sucursales desde: %s ..." % url, end="");
+        browser = Browser();
+
+        try:
+            html = browser.get(url).text;
+        except Exception as msg:
+            print("Error: "+str(msg));
+            return {};
+
+        stores_data = re.findall("<div id=\"stores-data\">(.+)</div>", html, flags=re.DOTALL);
+        if not stores_data:
+            print("Error, no hay '<div>' stores-data en %s..." %url);
+            return {};
+        
+        stores_data = json.loads(stores_data[0]);
+        stores_data = stores_data["stores"];
+
+        #tomamos el primer id 101 y lo restamos para solo obtenerlos como indices:
+        base_index = stores_data[0]["id"]-1; #101 - 1 = 100
+
+        sucursals = {};
+
+        for store in stores_data:
+            sc =  store["id"] - base_index;
+            
+            test_url = domain + "/api/catalog_system/pub/products/search/?sc=%d" % sc;
+            try:
+                resp = browser.get(test_url);
+                resp.raise_for_status();
+                sucursals[str(sc)] = store["name"]; #funciona
+            except Exception as msg:
+                #sucursal no permitida
+                pass;
+
+        return sucursals;
+
+            
+
+        
+
 
 b = Scraper();
-results = b.getProductsFromAllSucursals();
-print(f"teniendo {len(results)}");
+#results = b.getProductsFromAllSucursals();
+#print(f"teniendo {len(results)}");
+
+#sc = b.getAvailableSucursalIds();
+#print("sc:", sc)
 
 input("fin")
 
