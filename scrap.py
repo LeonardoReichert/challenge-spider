@@ -1,6 +1,8 @@
 
 """
-creado el scrap crawler etico aqui
+
+creado el scrap crawler challenge
+
 """
 
 from browser import Browser;
@@ -12,6 +14,7 @@ import json;
 
 from configLoader import domain, userAgent, maxRetrys, retrySeconds, maxThreads;
 
+from parsers import DictProduct;
 
 
 
@@ -24,7 +27,7 @@ class Scraper:
     def waitThreads(self, wait_all=False):
         """ Espera mientras la cantidad de threads este al limite """
         if wait_all:
-            print("esperando threads")
+            print(f"Esperando {len(self.programThreads)} threads...")
         while (len(self.programThreads) >= maxThreads) or (wait_all and self.programThreads):
             for thread in self.programThreads:
                 if not thread.is_alive():
@@ -32,10 +35,11 @@ class Scraper:
             #        print("removido un thread")
             time.sleep(0.01); #10ms no estresa cpu
         if wait_all:
-            print("listo threads")
+            print("Threads finalizados.")
 
 
     def startNewThread(self, func, *args):
+        """ Inicia un thread y lo pone en la lista de threads, pero espera si la lista esta en tope """
         self.waitThreads();
         thread = threading.Thread(target=func, args=args);
         thread.start();
@@ -47,7 +51,7 @@ class Scraper:
         recupera las url-api de categorias o subcategorias para consultar posteriormente productos
         devuelve True si tiene exito, False si tuvo error"""
 
-        print("Recuperando las slugs-categorias... ", end="");
+        print("Recuperando las slugs-categorias... ");
 
         #50 es la profundidad entre categorias y subcategorias
         slug = "/api/catalog_system/pub/category/tree/50";
@@ -76,8 +80,8 @@ class Scraper:
         return True;  #succes
     
 
-    def getProductsFromSucursal(self, sc):
-        """ devuelve la lista de sucursales consultada, pero en proceso aun """
+    def getProductsFromSucursal(self, scId):
+        """ devuelve la lista de productos de la sucursal consultada """
 
         #a este punto las api-categorias ya fueron extraidas
 
@@ -85,35 +89,40 @@ class Scraper:
 
         products = [];
 
-        count = 0;
-        
-        for urlApi in self.apisCategories:
-            def procGetProducts():
+        _countCategory = 0;
+        def procGetProductsFromCategory(urlApiCategory):
+            nonlocal _countCategory;
+
+            maxProducts = 50;
+            for _from in range(0, 2550, maxProducts):
+                to = _from + maxProducts-1;
+
+                url = urlApiCategory + f"?_from={_from}&_to={to}&sc={scId}";
+                result = browser.getPage( url );
+                if result == -1:
+                    return; #fail
+                            
+                jsonResult = json.loads(result);
+
+                result = [DictProduct(prod).parse() for prod in jsonResult];
+                if not result:
+                    break;
                 
-                for _from in range(0, 2550, 50):
-                    to = _from + 49;
-
-                    url = urlApi + f"?_from={_from}&_to={to}&sc={sc}";
-                    result = browser.getPage( url );
-                    if result == -1:
-                        return;
-
-                    result = re.findall("\"productId\":\"([0-9]+)\"", result);
-                    if not result:
-                        break;
-                    
-                    products.extend(result) #una simple prueba aun
-                        #print("resultado: %d " % result.count("productId"));
-                    
-            self.startNewThread(procGetProducts);
-            count += 1;
-            #print(f"Encontrados {len(result)} resultados en {url}..");
-            progress = count / len(self.apisCategories) * 100;
-            if not progress % 10:
-                print("sc: %d progress: %.02f %%" % (sc, progress) );
+                products.extend(result); #una simple prueba aun
+            
+            #mostrar progreso de esta busqueda:
+            _countCategory += 1;
+            progress = _countCategory / len(self.apisCategories) * 100;
+            if progress>0 and (progress % 5.0) == 0.0:
+                print(f"sc: {scId} progress: %.02f %%" % (progress) );
         
+        for urlApiCategory in self.apisCategories:
+            self.startNewThread(procGetProductsFromCategory, urlApiCategory);
+        
+        self.waitThreads(True); #esperando a que finalice la busqueda de esta sucursal
 
         return products;
+
             
     def getProductsFromAllSucursals(self):
         """ Revisa todas las sucursales y devuelve todos sus productos """
@@ -122,44 +131,30 @@ class Scraper:
             print("Hubo un error...");
             return -1;
         
-        results = [];
-        for surcursal in range(1, 17): #<- los sc se calcularan
+        sucursals = self.getAvailableSucursalIds();
 
-            pendingResult = self.getProductsFromSucursal( surcursal );
-            results.append( pendingResult );
-    
-            #products.extend(results);
-            #products = list(set(products));
-            print(f"probando sucursal {surcursal} con {len(self.programThreads)} threads");
-            #self.startNewThread(procProducts);
-            self.waitThreads(True);
+        results = {};
+        for scId in list(sorted(sucursals.keys())):
 
-            print("productos:", len(pendingResult));
-            #break;
-
-            #time.sleep(5)
-        
-        print("Finalizando todos los threads... ", end="");
+            nameSucursal = sucursals[scId];
+            print(f"Siguiente sucursal ID {scId}: {nameSucursal}");
+            results[scId] = self.getProductsFromSucursal( scId );
+            
+        print(f"Finalizando todos los {len(self.programThreads)} threads... ");
         self.waitThreads(True);
         print("listo.");
+        
+        return results;
 
-        t1 = time.time();
-        products = []
-        for res in results:
-            products.extend(res);
-        
-        passed = time.time()-t1;
-        products = list(set(products));
-        print("Segundos pasados en agrupar todos los resultados: ", passed)
-        
-        return products;
 
     def getAvailableSucursalIds(self):
         """ Obtiene el ID de sucursales disponibles """
 
-        url = domain + "/institucional/sucursales";
+        url =  "/institucional/sucursales";
+        print("Obteniendo sucursales desde: %s ..." % url);
 
-        print("Obteniendo sucursales desde: %s ..." % url, end="");
+        url = domain + url;
+
         browser = Browser();
 
         try:
@@ -172,7 +167,7 @@ class Scraper:
         if not stores_data:
             print("Error, no hay '<div>' stores-data en %s..." %url);
             return {};
-        
+    
         stores_data = json.loads(stores_data[0]);
         stores_data = stores_data["stores"];
 
@@ -181,31 +176,35 @@ class Scraper:
 
         sucursals = {};
 
-        for store in stores_data:
-            sc =  store["id"] - base_index;
-            
-            test_url = domain + "/api/catalog_system/pub/products/search/?sc=%d" % sc;
+        def test_sc(scId, scName):
+            #thread que prueba una sucursal
+            testUrl = f"{domain}/api/catalog_system/pub/products/search/?sc={scId}";
             try:
-                resp = browser.get(test_url);
+                resp = browser.get(testUrl);
                 resp.raise_for_status();
-                sucursals[str(sc)] = store["name"]; #funciona
+                sucursals[scId] = scName; #funciona
             except Exception as msg:
                 #sucursal no permitida
                 pass;
 
-        return sucursals;
-
-            
-
+        for store in stores_data:
+            scId =  store["id"] - base_index;
+            self.startNewThread(test_sc, scId, store["name"]);
         
+        self.waitThreads(wait_all=True);
+
+        print("%d id sucursales disponibles..." % len(sucursals));
+
+        return sucursals;
 
 
 b = Scraper();
-#results = b.getProductsFromAllSucursals();
-#print(f"teniendo {len(results)}");
+results = b.getProductsFromAllSucursals();
+print(f"teniendo {len(results)}");
+sc = b.getAvailableSucursalIds();
 
-#sc = b.getAvailableSucursalIds();
-#print("sc:", sc)
+for scId, products in results.items():
+    print(f"sc-id {scId}: tiene {len(products)} products");
 
 input("fin")
 
