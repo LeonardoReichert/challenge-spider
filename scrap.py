@@ -11,8 +11,11 @@ import time;
 import threading;
 import re;
 import json;
+import csv;
+import os;
+import os.path;
 
-from configLoader import domain, userAgent, maxRetrys, retrySeconds, maxThreads;
+from configLoader import domain, maxThreads, pathSaves, filenameSaves;
 
 from parsers import DictProduct;
 
@@ -115,7 +118,7 @@ class Scraper:
             progress = _countCategory / len(self.apisCategories) * 100;
             if progress>0 and (progress % 5.0) == 0.0:
                 print(f"sc: {scId} progress: %.02f %%" % (progress) );
-        
+
         for urlApiCategory in self.apisCategories:
             self.startNewThread(procGetProductsFromCategory, urlApiCategory);
         
@@ -133,18 +136,18 @@ class Scraper:
         
         sucursals = self.getAvailableSucursalIds();
 
-        results = {};
+        resultProducts = {};
         for scId in list(sorted(sucursals.keys())):
 
             nameSucursal = sucursals[scId];
             print(f"Siguiente sucursal ID {scId}: {nameSucursal}");
-            results[scId] = self.getProductsFromSucursal( scId );
-            
+            resultProducts[scId] = self.getProductsFromSucursal( scId );
+        
         print(f"Finalizando todos los {len(self.programThreads)} threads... ");
         self.waitThreads(True);
         print("listo.");
         
-        return results;
+        return sucursals, resultProducts;
 
 
     def getAvailableSucursalIds(self):
@@ -198,16 +201,51 @@ class Scraper:
         return sucursals;
 
 
-b = Scraper();
-results = b.getProductsFromAllSucursals();
-print(f"teniendo {len(results)}");
-sc = b.getAvailableSucursalIds();
 
-for scId, products in results.items():
-    print(f"sc-id {scId}: tiene {len(products)} products");
+def main():
+    """
+        pone a trabajar
+    """
+    print("Comenzando...\n")
+
+    print(f'Los archivos csv se guardaran en "{pathSaves}"')
+    print(f'Los archivos csv se en formato como "{filenameSaves}"')
+
+    if not os.path.exists(pathSaves):
+        try:
+            os.makedirs(pathSaves);
+        except:
+            print(f"No se ha podido crear la carpeta {pathSaves}\n abortando proceso...");
+            return -1;
+
+    scrap = Scraper();
+
+    sucursalNames, productBySucursals = scrap.getProductsFromAllSucursals();
+
+    countSave = 0;
+
+    for scId, listProduct in productBySucursals.items():
+        
+        countSave += 1;
+
+        filename = filenameSaves.replace("%nsave%", str(countSave));
+        filename = filename.replace("%sc%", str(scId));
+        filename = filename.replace("%scname%", sucursalNames[scId]);
+        filename = f"{pathSaves}/{filename}".replace("//", "/");
+
+        fieldnames = list(listProduct[0].keys());
+
+        fp = open(filename, "w", encoding="utf-8", errors="replace");
+        writer = csv.DictWriter(fp, fieldnames);
+        writer.writeheader();
+        writer.writerows(listProduct);
+        fp.close();
+
+        print(filename)
+
+if __name__ == "__main__":
+    main();
+
 
 input("fin")
-
-
-
 

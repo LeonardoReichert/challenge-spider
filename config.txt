@@ -8,20 +8,29 @@
 Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KhtmlCode, like Gecko) Chrome/97.0.4692.99 Mobile Safari/537.36
 [/user-agent]
 
-
+//configurar el path de archivos guardados
 [path-saves]
 saves/
 [/path-saves]
 
+
+//configurar el nombre de archivo guardado:
+// si se agrega %sc% sera remplazado por el id de la sucursal,
+// si se agrega %scname% sera remplazado por el nombre de sucursal,
+// si se agrega %nsave% sera remplazado por el numero en orden de archivo guardado.
+[filename-saves]
+mysave - id=%sc% name=%scname%.csv
+[/filename-saves]
+
 //la cantidad de threads que va a usarse
 [max-threads]
-50
+20
 [/max-threads]
 
 
 //cantidad de intentos por pagina fallida:
 [max-retrys-pages]
-5
+3
 [/max-retrys-pages]
 
 
@@ -29,4 +38,6 @@ saves/
 [wait-seconds-retry]
 5
 [/wait-seconds-retry]
+
+
 

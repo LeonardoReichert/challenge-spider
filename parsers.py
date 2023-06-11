@@ -7,6 +7,12 @@ from re import findall;
 
 
 class DictProduct(dict):
+    """
+    Una clase que pretende simplificar un resultado de busqueda de un producto
+    Mejor forma de usarlo:
+        dictNecesesario = DictProduct(dictProduct).parse()
+    """
+    
     def getId(self):
         return self["productId"];
 

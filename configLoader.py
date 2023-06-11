@@ -13,25 +13,19 @@ fp.close();
 
 domain = open("target_site.txt", "r").read().strip();
 
-#domain = re.findall("\[domain\](.+)\[/domain\]", dataConfig, flags=re.DOTALL)[0].replace("\n", "");
 
-userAgent = re.findall("\[user-agent\](.+)\[/user-agent\]", dataConfig,
-                                                        flags=re.DOTALL)[0].replace("\n", "");
-
-pathSaves = re.findall("\[path-saves\](.+)\[/path-saves\]", dataConfig,
-                                                        flags=re.DOTALL)[0].replace("\n", "");
+def getConfig(header_name):
+    value = re.findall(f"\[{header_name}\](.+)\[/{header_name}\]", dataConfig,
+                                                flags=re.DOTALL)[0].replace("\n", "");
+    return value;
 
 
-maxRetrys = int(re.findall("\[max-retrys-pages\](.+)\[/max-retrys-pages\]", dataConfig,
-                                                        flags=re.DOTALL)[0].replace("\n", ""));
-
-retrySeconds = int(re.findall("\[wait-seconds-retry\](.+)\[/wait-seconds-retry\]", dataConfig,
-                                                        flags=re.DOTALL)[0].replace("\n", ""));
-
-
-maxThreads = int(re.findall("\[max-threads\](.+)\[/max-threads\]", dataConfig,
-                                                        flags=re.DOTALL)[0].replace("\n", ""));
-
+userAgent = getConfig("user-agent");
+pathSaves = getConfig("path-saves");
+filenameSaves = getConfig("filename-saves");
+maxRetrys = getConfig("max-retrys-pages");
+retrySeconds = getConfig("wait-seconds-retry");;
+maxThreads = getConfig("max-threads");
 
 
 if __name__ == "__main__":
