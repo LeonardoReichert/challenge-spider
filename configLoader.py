@@ -11,7 +11,7 @@ dataConfig = fp.read();
 fp.close();
 
 
-domain = open("target_site.txt", "r").read().strip();
+hostname = open("target_site.txt", "r").read().strip();
 
 #eliminar comentarios antes de parsear:
 dataConfig = re.sub("//.+?\r?\n", "", dataConfig, flags=re.DOTALL);
@@ -33,6 +33,14 @@ maxRetrys = int(getConfig("max-retrys-pages"));
 retrySeconds = int(getConfig("wait-seconds-retry"));
 maxThreads = int(getConfig("max-threads"));
 
+showProgress = getConfig("debug-progress").lower();
+try:
+    assert showProgress in ("true", "false");
+    showProgress = {"false": False, "true": True}[showProgress];
+except:
+    print("showDebugProgress solo puede ser False o True, por defecto es False.")
+    showProgress = False;
+
 
 _proxiesLines = getConfig("proxys").split();
 proxies = {}
@@ -51,9 +59,10 @@ except:
 if __name__ == "__main__":
     print("Tesging config loader...\n");
 
-    print("domain:", domain);
+    print("Hostname:", hostname);
     print("user-agent:", userAgent);
     print("path-saves:", pathSaves);
+    print("debug-progress:", showProgress)
 
     print("proxies:", proxies)
 

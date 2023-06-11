@@ -5,7 +5,7 @@
 
 
 [user-agent]
-Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KhtmlCode, like Gecko) Chrome/97.0.4692.99 Mobile Safari/537.36
+Crawler Etico
 [/user-agent]
 
 //configurar el path de archivos guardados
@@ -24,7 +24,7 @@ mysave - id=%sc% name=%scname%.csv
 
 //la cantidad de threads que va a usarse
 [max-threads]
-20
+40
 [/max-threads]
 
 
@@ -38,6 +38,12 @@ mysave - id=%sc% name=%scname%.csv
 [wait-seconds-retry]
 5
 [/wait-seconds-retry]
+
+
+//mostrar barra de porcentaje del progreso [True o False]:
+[debug-progress]
+True
+[/debug-progress]
 
 
 //la codificación con la que se guardaria los archivos:

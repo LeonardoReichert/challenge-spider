@@ -14,30 +14,50 @@ import json;
 import csv;
 import os;
 import os.path;
+from urllib.robotparser import RobotFileParser;
 
-from configLoader import domain, maxThreads, pathSaves, filenameSaves, filesEncoding, proxies;
+#owns modules:
+from configLoader import *;
+#(hostname, maxThreads, pathSaves, filenameSaves, filesEncoding,
+                          #proxies, maxRetrys, retrySeconds);
 from parsers import DictProduct;
 
 
 
+def reportProgress(progress, unprogress, countThreads):
+    """ Muestra de manera amigable el progreso en una sola linea """
+    print(f"\r{'#'*int(20/100*progress)}{'-'*int(20/100*unprogress+1)} progress: {progress:.02f}%.  \
+ {countThreads} threads. {' '*10}", end="");
+    
+
 class Scraper:
     programThreads = [];
 
-    def __init__(self):
-        pass;
+    def __init__(self, hostname):
+        self.hostname = hostname;
+
+        try:
+            print("Leyendo el archivo robots...", end="");
+            self.robotParser = RobotFileParser(url=f"{hostname}/robots.txt");
+            self.robotParser.read();
+            print(" Listo.");
+        except:
+            print(f"No se pudo leer el archivo {hostname}/rotobts.txt")
+            self.robotParser = None; #Error
+                
     
     def waitThreads(self, wait_all=False):
         """ Espera mientras la cantidad de threads este al limite """
-        if wait_all:
-            print(f"Esperando {len(self.programThreads)} threads...")
+        #if wait_all:
+        #    print(f"Esperando {len(self.programThreads)} threads...")
         while (len(self.programThreads) >= maxThreads) or (wait_all and self.programThreads):
             for thread in self.programThreads:
                 if not thread.is_alive():
                     self.programThreads.remove(thread);
             #        print("removido un thread")
             time.sleep(0.01); #10ms no estresa cpu
-        if wait_all:
-            print("Threads finalizados.")
+        #if wait_all:
+        #    print("Threads finalizados.")
 
 
     def startNewThread(self, func, *args):
@@ -57,7 +77,7 @@ class Scraper:
 
         #50 es la profundidad entre categorias y subcategorias
         slug = "/api/catalog_system/pub/category/tree/50";
-        result = Browser().getPage(domain + slug);
+        result = Browser(self.robotParser).getPage(self.hostname + slug);
         if result != -1:
             categories = json.loads(result);
         else:
@@ -71,7 +91,7 @@ class Scraper:
             #quitamos el nombre de host y conservamos el slug: https://dominio.com/slug_category/
             slug = dictCategory["url"].split("//", 1)[1].split("/", 1)[1];
             
-            urlApi = domain+"/api/catalog_system/pub/products/search/%s/"%slug;
+            urlApi = self.hostname+"/api/catalog_system/pub/products/search/%s/"%slug;
             self.apisCategories.append(urlApi);
 
             #las sub-categorias de esta categoria las agregamos a este for proceso:
@@ -87,7 +107,7 @@ class Scraper:
 
         #a este punto las api-categorias ya fueron extraidas
 
-        browser = Browser();
+        browser = Browser(self.robotParser);
 
         products = [];
 
@@ -103,25 +123,29 @@ class Scraper:
                 result = browser.getPage( url );
                 if result == -1:
                     return; #fail
-                            
+                
                 jsonResult = json.loads(result);
 
-                result = [DictProduct(prod).parse() for prod in jsonResult];
                 if not result:
                     break;
+
+                #tomamos solo lo necesario:
+                result = [DictProduct(prod).parse() for prod in jsonResult];
                 
                 products.extend(result); #una simple prueba aun
             
             #mostrar progreso de esta busqueda:
-            _countCategory += 1;
-            progress = _countCategory / len(self.apisCategories) * 100;
-            if progress>0 and (progress % 5.0) == 0.0:
-                print(f"sc: {scId} progress: %.02f %%" % (progress) );
-
+            if showProgress:
+                _countCategory += 1;
+                progress = _countCategory / len(self.apisCategories) * 100;
+                unprogress = 100-progress;
+                reportProgress(progress, unprogress, len(self.programThreads));
+                
         for urlApiCategory in self.apisCategories:
             self.startNewThread(procGetProductsFromCategory, urlApiCategory);
         
         self.waitThreads(True); #esperando a que finalice la busqueda de esta sucursal
+        print("\nFinalizados los threads.")
 
         return products;
 
@@ -139,8 +163,11 @@ class Scraper:
         for scId in list(sorted(sucursals.keys())):
 
             nameSucursal = sucursals[scId];
-            print(f"Siguiente sucursal ID {scId}: {nameSucursal}");
+            print(f"\nSiguiente sucursal ID {scId}: {nameSucursal}");
+            marcaTiempo = time.time();
             resultProducts[scId] = self.getProductsFromSucursal( scId );
+            transcurrido = time.time()-marcaTiempo;
+            print(f"Transcurrios {transcurrido:.01f} segundos por sucursal ID {scId}...");
         
         print(f"Finalizando todos los {len(self.programThreads)} threads... ");
         self.waitThreads(True);
@@ -155,9 +182,9 @@ class Scraper:
         url =  "/institucional/sucursales";
         print("Obteniendo sucursales desde: %s ..." % url);
 
-        url = domain + url;
+        url = self.hostname + url;
 
-        browser = Browser();
+        browser = Browser(self.robotParser);
 
         html = browser.getPage(url);
         if html == -1:
@@ -178,7 +205,7 @@ class Scraper:
 
         def test_sc(scId, scName):
             #thread que prueba una sucursal
-            testUrl = f"{domain}/api/catalog_system/pub/products/search/?sc={scId}";
+            testUrl = f"{self.hostname}/api/catalog_system/pub/products/search/?sc={scId}";
             resp = browser.getPage(testUrl);
             if resp != -1:
                 sucursals[scId] = scName; #funciona
@@ -209,6 +236,10 @@ def main():
     print(f'Los archivos csv se en formato como "{filenameSaves}"')
     print(f'Los archivos csv se guardaran en la codificación: "{filesEncoding}"')
     print("--------------------------------------------------------")
+    print(f"Se usaran un maximo de {maxThreads} threads.");
+    print(f"Se usaran un maximo de {maxRetrys} intentos por solicitud.");
+    print(f"Se esperara {retrySeconds} segundos despues de cada reintento.");
+    print("--------------------------------------------------------")
 
     if not os.path.exists(pathSaves):
         try:
@@ -218,7 +249,7 @@ def main():
             print(f"No se ha podido crear la carpeta {pathSaves}\n abortando proceso... Razon: {msg}");
             return -1;
 
-    scrap = Scraper();
+    scrap = Scraper(hostname);
 
     sucursalNames, productBySucursals = scrap.getProductsFromAllSucursals();
 
