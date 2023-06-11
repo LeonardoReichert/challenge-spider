@@ -1,53 +1,55 @@
 
 
-// configurar target_site.txt para decir a que web
-// poner contenido en target_site.txt como https://www. ... .com
+# configurar target_site.txt para settear el sitio
+# poner contenido en target_site.txt como https://www. ... .com
 
 
 [user-agent]
 Crawler Etico
 [/user-agent]
 
-//configurar el path de archivos guardados
+#configurar el path de archivos guardados
 [path-saves]
 saves/
 [/path-saves]
 
 
-//configurar el nombre de archivo guardado:
-// si se agrega %sc% sera remplazado por el id de la sucursal,
-// si se agrega %scname% sera remplazado por el nombre de sucursal,
-// si se agrega %nsave% sera remplazado por el numero en orden de archivo guardado.
+/*
+ configurar el nombre de archivo guardado:
+ si se agrega %sc% sera remplazado por el id de la sucursal,
+ si se agrega %scname% sera remplazado por el nombre de sucursal,
+ si se agrega %nsave% sera remplazado por el numero en orden de archivo guardado.
+*/
 [filename-saves]
 mysave - id=%sc% name=%scname%.csv
 [/filename-saves]
 
-//la cantidad de threads que va a usarse
+#la cantidad de threads que va a usarse
 [max-threads]
-40
+5
 [/max-threads]
 
 
-//cantidad de intentos por pagina fallida:
+#cantidad de intentos por pagina fallida:
 [max-retrys-pages]
 3
 [/max-retrys-pages]
 
 
-//cantidad de segundos a esperar por pagina antes de reintentar:
+#Cantidad de segundos a esperar por pagina antes de reintentar:
 [wait-seconds-retry]
 5
 [/wait-seconds-retry]
 
 
-//mostrar barra de porcentaje del progreso [True o False]:
+#Mostrar barra de porcentaje del progreso [True o False]:
 [debug-progress]
 True
 [/debug-progress]
 
 
-//la codificación con la que se guardaria los archivos:
-// sirve saber que la codificación deberia usarse la misma para volver a leer los archivos...
+# La codificación con la que se guardaria los archivos:
+# sirve saber que la codificación deberia usarse la misma para volver a leer los archivos...
 [saves-encoding]
 utf-8
 [/saves-encoding]
@@ -55,7 +57,7 @@ utf-8
 
 
 /*
-para poner proxis simplemente poner como en el siguiente
+Para poner proxis simplemente poner como en el siguiente
 ejemplo:
 
 [proxys]
