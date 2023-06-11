@@ -10,7 +10,7 @@ import threading;
 import re;
 import json;
 
-from configLoader import userAgent, maxRetrys, retrySeconds;
+from configLoader import userAgent, maxRetrys, retrySeconds, proxies;
 
 
 class Browser(requests.Session):
@@ -18,6 +18,7 @@ class Browser(requests.Session):
     def __init__(self):
         requests.Session.__init__(self);
         self.headers.update({"User-Agent": userAgent});
+        self.proxies = proxies;
 
     def getPage(self, url):
         """ Debe devolver el contenido en <str> de la pagina, insiste, o un -1 si no tiene exito """

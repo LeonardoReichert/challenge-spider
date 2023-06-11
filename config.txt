@@ -47,3 +47,19 @@ utf-8
 [/saves-encoding]
 
 
+
+/*
+para poner proxis simplemente poner como en el siguiente
+ejemplo:
+
+[proxys]
+https=https://example.com
+http=localhost:80
+http=localhost
+[/proxys]
+
+Ponerlas aqui:
+*/
+[proxys]
+[/proxys]
+

@@ -15,7 +15,7 @@ import csv;
 import os;
 import os.path;
 
-from configLoader import domain, maxThreads, pathSaves, filenameSaves, filesEncoding;
+from configLoader import domain, maxThreads, pathSaves, filenameSaves, filesEncoding, proxies;
 from parsers import DictProduct;
 
 
@@ -199,9 +199,12 @@ def main():
     """
         pone a trabajar
     """
-
+    
     print("Comenzando...\n")
     print("--------------------------------------------------------")
+    if proxies:
+        print("Se han configurado proxies, y la configuración es", proxies)
+        print("Las proxies se configuran en config.txt")
     print(f'Los archivos csv se guardaran en "{pathSaves}"')
     print(f'Los archivos csv se en formato como "{filenameSaves}"')
     print(f'Los archivos csv se guardaran en la codificación: "{filesEncoding}"')
@@ -248,6 +251,7 @@ def main():
         except Exception as msg:
             print(f"[Error] Razon: {msg}")
             break;
+
 
 if __name__ == "__main__":
     main();
