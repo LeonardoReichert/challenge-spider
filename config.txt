@@ -40,4 +40,10 @@ mysave - id=%sc% name=%scname%.csv
 [/wait-seconds-retry]
 
 
+//la codificación con la que se guardaria los archivos:
+// sirve saber que la codificación deberia usarse la misma para volver a leer los archivos...
+[saves-encoding]
+utf-8
+[/saves-encoding]
+
 

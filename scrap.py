@@ -15,8 +15,7 @@ import csv;
 import os;
 import os.path;
 
-from configLoader import domain, maxThreads, pathSaves, filenameSaves;
-
+from configLoader import domain, maxThreads, pathSaves, filenameSaves, filesEncoding;
 from parsers import DictProduct;
 
 
@@ -160,10 +159,8 @@ class Scraper:
 
         browser = Browser();
 
-        try:
-            html = browser.get(url).text;
-        except Exception as msg:
-            print("Error: "+str(msg));
+        html = browser.getPage(url);
+        if html == -1:
             return {};
 
         stores_data = re.findall("<div id=\"stores-data\">(.+)</div>", html, flags=re.DOTALL);
@@ -182,14 +179,10 @@ class Scraper:
         def test_sc(scId, scName):
             #thread que prueba una sucursal
             testUrl = f"{domain}/api/catalog_system/pub/products/search/?sc={scId}";
-            try:
-                resp = browser.get(testUrl);
-                resp.raise_for_status();
+            resp = browser.getPage(testUrl);
+            if resp != -1:
                 sucursals[scId] = scName; #funciona
-            except Exception as msg:
-                #sucursal no permitida
-                pass;
-
+            
         for store in stores_data:
             scId =  store["id"] - base_index;
             self.startNewThread(test_sc, scId, store["name"]);
@@ -206,21 +199,30 @@ def main():
     """
         pone a trabajar
     """
-    print("Comenzando...\n")
 
+    print("Comenzando...\n")
+    print("--------------------------------------------------------")
     print(f'Los archivos csv se guardaran en "{pathSaves}"')
     print(f'Los archivos csv se en formato como "{filenameSaves}"')
+    print(f'Los archivos csv se guardaran en la codificación: "{filesEncoding}"')
+    print("--------------------------------------------------------")
 
     if not os.path.exists(pathSaves):
         try:
             os.makedirs(pathSaves);
-        except:
-            print(f"No se ha podido crear la carpeta {pathSaves}\n abortando proceso...");
+            print(f'Creada la carpeta "{pathSaves}"')
+        except Exception as msg:
+            print(f"No se ha podido crear la carpeta {pathSaves}\n abortando proceso... Razon: {msg}");
             return -1;
 
     scrap = Scraper();
 
     sucursalNames, productBySucursals = scrap.getProductsFromAllSucursals();
+
+    print("\nTerminado.")
+    print("--------------------------------------------------------")
+    print("Guardando resultados...")
+
 
     countSave = 0;
 
@@ -235,17 +237,19 @@ def main():
 
         fieldnames = list(listProduct[0].keys());
 
-        fp = open(filename, "w", encoding="utf-8", errors="replace");
-        writer = csv.DictWriter(fp, fieldnames);
-        writer.writeheader();
-        writer.writerows(listProduct);
-        fp.close();
+        print(filename, end="... ");
 
-        print(filename)
+        try:
+            with open(filename, "w", encoding=filesEncoding) as fp:
+                writer = csv.DictWriter(fp, fieldnames);
+                writer.writeheader();
+                writer.writerows(listProduct);
+            print("[Saved]")
+        except Exception as msg:
+            print(f"[Error] Razon: {msg}")
+            break;
 
 if __name__ == "__main__":
     main();
-
-
-input("fin")
+    input("fin - enter para salir...")
 

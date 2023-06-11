@@ -27,17 +27,15 @@ class Browser(requests.Session):
             try:
                 browser.cookies.clear();
                 page = browser.get(url);
-                page.raise_for_status();
-                break; #<- succes
+                page.raise_for_status(); # <- raise errors
+                #return page.content.decode("utf-8", errors="replace"); #<- succes
+                return page.text; #success
             except Exception as msg:
                 #print("error page %s... wait 10 seconds..." % url);
                 #print(str(msg));
                 time.sleep(retrySeconds);
-        
-        if nRetry+1 == maxRetrys:
-            return -1;
 
-        return page.content.decode("utf-8", errors="replace");
+        return -1;
 
 
 

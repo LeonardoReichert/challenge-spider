@@ -23,9 +23,11 @@ def getConfig(header_name):
 userAgent = getConfig("user-agent");
 pathSaves = getConfig("path-saves");
 filenameSaves = getConfig("filename-saves");
-maxRetrys = getConfig("max-retrys-pages");
-retrySeconds = getConfig("wait-seconds-retry");;
-maxThreads = getConfig("max-threads");
+filesEncoding = getConfig("saves-encoding");
+
+maxRetrys = int(getConfig("max-retrys-pages"));
+retrySeconds = int(getConfig("wait-seconds-retry"));
+maxThreads = int(getConfig("max-threads"));
 
 
 if __name__ == "__main__":
