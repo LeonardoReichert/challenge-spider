@@ -1,9 +1,14 @@
 
+/*
+Aqui en este archivo van las configuraciones del crawler
+*/
+
 
 # configurar target_site.txt para settear el sitio
 # poner contenido en target_site.txt como https://www. ... .com
 
 
+# configurar el user agent nombre:
 [user-agent]
 Crawler Etico
 [/user-agent]
