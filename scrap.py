@@ -26,7 +26,7 @@ from parsers import DictProduct;
 
 def reportProgress(progress, unprogress, countThreads):
     """ Muestra de manera amigable el progreso en una sola linea """
-    print(f"\r{'#'*int(20/100*progress)}{'-'*int(20/100*unprogress+1)} progress: {progress:.02f}%.  \
+    print(f"\r{'#'*int(20/100*progress)}{'-'*int(20/100*unprogress)} progress: {progress:.02f}%.  \
  {countThreads} threads. {' '*10}", end="");
     
 
@@ -110,10 +110,12 @@ class Scraper:
         browser = Browser(self.robotParser);
 
         products = [];
+        errors = 0;
 
         _countCategory = 0;
         def procGetProductsFromCategory(urlApiCategory):
             nonlocal _countCategory;
+            nonlocal errors;
 
             maxProducts = 50;
             for _from in range(0, 2550, maxProducts):
@@ -122,6 +124,7 @@ class Scraper:
                 url = urlApiCategory + f"?_from={_from}&_to={to}&sc={scId}";
                 result = browser.getPage( url );
                 if result == -1:
+                    errors += 1;
                     return; #fail
                 
                 jsonResult = json.loads(result);
@@ -146,6 +149,8 @@ class Scraper:
         
         self.waitThreads(True); #esperando a que finalice la busqueda de esta sucursal
         print("\nFinalizados los threads.")
+        if errors > 0:
+            print(f"Hubieron {errors} errores o peticiones sin respuesta.");
 
         return products;
 
@@ -158,6 +163,9 @@ class Scraper:
             return -1;
         
         sucursals = self.getAvailableSucursalIds();
+        if not sucursals:
+            print("Ocurrio un error o no se han obtenido sucursales.");
+            return -1;
 
         resultProducts = {};
         for scId in list(sorted(sucursals.keys())):
@@ -179,7 +187,7 @@ class Scraper:
     def getAvailableSucursalIds(self):
         """ Obtiene el ID de sucursales disponibles """
 
-        url =  "/institucional/sucursales";
+        url =  "/files/fit-home.js";
         print("Obteniendo sucursales desde: %s ..." % url);
 
         url = self.hostname + url;
@@ -190,17 +198,11 @@ class Scraper:
         if html == -1:
             return {};
 
-        stores_data = re.findall("<div id=\"stores-data\">(.+)</div>", html, flags=re.DOTALL);
+        stores_data = re.findall('"ecommerce":true,"id":[0-9]+?,"name":"(.+?)","sc":([0-9]+?),', html, flags=re.DOTALL);
         if not stores_data:
-            print("Error, no hay '<div>' stores-data en %s..." %url);
+            print("Error, no hay patron 'id, name, y sc' en %s..." %url);
             return {};
     
-        stores_data = json.loads(stores_data[0]);
-        stores_data = stores_data["stores"];
-
-        #tomamos el primer id 101 y lo restamos para solo obtenerlos como indices:
-        base_index = stores_data[0]["id"]-1; #101 - 1 = 100
-
         sucursals = {};
 
         def test_sc(scId, scName):
@@ -210,9 +212,8 @@ class Scraper:
             if resp != -1:
                 sucursals[scId] = scName; #funciona
             
-        for store in stores_data:
-            scId =  store["id"] - base_index;
-            self.startNewThread(test_sc, scId, store["name"]);
+        for name, scId in stores_data:
+            self.startNewThread(test_sc, scId, name);
         
         self.waitThreads(wait_all=True);
 
@@ -265,7 +266,7 @@ def main():
         countSave += 1;
 
         filename = filenameSaves.replace("%nsave%", str(countSave));
-        filename = filename.replace("%sc%", str(scId));
+        filename = filename.replace("%sc%", scId);
         filename = filename.replace("%scname%", sucursalNames[scId]);
         filename = f"{pathSaves}/{filename}".replace("//", "/");
 
