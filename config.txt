@@ -53,7 +53,7 @@ True
 [/debug-progress]
 
 
-# La codificación con la que se guardaria los archivos:
+# La codificación con la que se guardaria los archivos, tambien con la que se prefiere la información:
 # sirve saber que la codificación deberia usarse la misma para volver a leer los archivos...
 [saves-encoding]
 utf-8

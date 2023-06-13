@@ -217,7 +217,10 @@ class Scraper:
         
         self.waitThreads(wait_all=True);
 
-        print("%d id sucursales disponibles..." % len(sucursals));
+        print("%d id sucursales disponibles:" % len(sucursals));
+        for scId in sorted([int(sc) for sc in sucursals]):
+            name = sucursals[str(scId)];
+            print(f" id {scId}: {name}");
 
         return sucursals;
 

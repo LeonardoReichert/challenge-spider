@@ -7,7 +7,7 @@ Este modulo contiene la plantilla de browser para cada conexion
 import requests;
 import time;
 
-from configLoader import userAgent, maxRetrys, retrySeconds, proxies;
+from configLoader import userAgent, maxRetrys, retrySeconds, proxies, filesEncoding;
 
 
 class Browser(requests.Session):
@@ -37,8 +37,8 @@ class Browser(requests.Session):
             try:
                 page = self.get(url);
                 page.raise_for_status(); # <- raise errors
-                #return page.content.decode("utf-8", errors="replace"); #<- succes
-                return page.text; #success
+                return page.content.decode(filesEncoding, errors="replace"); #<- succes
+                #return page.text; #success
             except Exception as msg:
                 #print("error page %s... wait 10 seconds..." % url);
                 #print(str(msg));
